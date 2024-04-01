@@ -102,6 +102,13 @@ import java.awt.*;
                       line.draw(g, i, drawingPanel.getWidth(), drawingPanel.getHeight()); // Draws lines every time  value is enterd by the user
                       i++;
                   }
+                  if(!historyLines.isEmpty()){
+                    i=0;
+                    for(LineSegment hist: historyLines){
+                        hist.draw(g, i, drawingPanel.getWidth(), drawingPanel.getHeight());
+                        i++;
+                    }
+                  }
               }
           };
           // This button will display the data of the lines that are drawin on the screen
@@ -138,14 +145,7 @@ import java.awt.*;
                     }
                 }
                 lines.clear();
-                drawingPanel.repaint();
-                if(!lines.isEmpty())
-                    showLinesFrame();
-                else{
-                    linesUpdated = 0;
-                    if(linesFrame.isVisible())
-                        linesFrame.dispose();
-                }   
+                drawingPanel.repaint();  
               }
           });
           // Create draw button that when clicked will draw a line on to the graph
@@ -225,9 +225,11 @@ import java.awt.*;
              String selectedOption2 = (String) dropdown2.getSelectedItem();
             if(selectedOption1.compareTo("top")==0 && L.getRowCount() != 0){
                 historyLines = L.fetchFirstDB(Integer.parseInt(selectedOption2));
+                drawingPanel.repaint();
                 showHistoryFrame();
             }else if(selectedOption1.compareTo("bottom")==0 && L.getRowCount() != 0){
                 historyLines = L.fetchLastDB(Integer.parseInt(selectedOption2));
+                drawingPanel.repaint();
                 showHistoryFrame();
             }else{
                 // Show error message dialog
@@ -250,7 +252,6 @@ import java.awt.*;
         model.addColumn("1st Point");
         model.addColumn("2nd Point");
         model.addColumn("Distance");
-        model.addColumn("");
 
         int i = 1;
         // Add rows to the table using a loop
@@ -258,14 +259,7 @@ import java.awt.*;
             String p1 = "("+line.x1+","+line.y1+")";
             String p2 = "("+line.x2+","+line.y2+")";
             String d = String.format("%.2f",line.dist)+" units";
-            JButton drawHistory = new JButton("draw");
-            drawHistory.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e){
-                    
-                }
-            });
-            model.addRow(new Object[]{i, p1, p2, d, drawHistory});
+            model.addRow(new Object[]{i, p1, p2, d});
             i++;
         }
         JTable table = new JTable(model);
@@ -281,6 +275,20 @@ import java.awt.*;
         JScrollPane scrollPane = new JScrollPane(table);
         // Set the preferred size of the table
         table.setPreferredScrollableViewportSize(new Dimension(500, 500));
+
+        historyFrame.addWindowListener(new WindowAdapter(){
+            @Override
+            public void windowClosing(WindowEvent e){
+                int option = JOptionPane.showConfirmDialog(null, "Do you want to keep the data on screen?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                // Check the user's choice
+                if (option == JOptionPane.YES_OPTION){
+                    for(LineSegment hist: historyLines)
+                        lines.add(hist);
+                }
+                historyLines.clear();
+                drawingPanel.repaint();
+            }
+        });
         // Add the scroll pane to the history frame
         historyFrame.add(scrollPane);
         // Pack the frame to adjust its size
@@ -295,7 +303,7 @@ import java.awt.*;
      * 
      */
   
-      private JScrollPane updateLinesPanel(){
+      private void updateLinesPanel(){
           linesPanel = new JPanel(new GridLayout(lines.size(), 1));
               // Iterate through each line and add label with coordinates and distance
               int i =0;
@@ -305,12 +313,6 @@ import java.awt.*;
                   label.setForeground(line.colors[(i-1)%8]); // Set the color of the label
                   linesPanel.add(label);
               }
-
-               // Wrap the linesPanel inside a JScrollPane
-            JScrollPane scrollPane = new JScrollPane(linesPanel);
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); // Always show vertical scrollbar
-            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); // Never show horizontal scrollbar
-            return scrollPane;
         }
   
 
@@ -344,7 +346,7 @@ import java.awt.*;
               linesFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
               linesFrame.setSize(300, 200);
               // Create a panel to display line coordinates and distances
-              linesFrame.add(updateLinesPanel());
+              updateLinesPanel();
               linesFrame.add(linesPanel);
           linesFrame.setVisible(true);
       }
